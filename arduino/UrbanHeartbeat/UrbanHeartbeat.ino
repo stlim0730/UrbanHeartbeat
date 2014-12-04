@@ -17,12 +17,15 @@
 
 #include <Adafruit_NeoPixel.h>
 #include <SD.h>
+#include <EEPROM.h>
 
 // START CONSTANTS
 // START CONTROL CONSTANTS
 #define RESET_PIN 4
 #define RESET_THRESHOLD 5
-#define RESET_DELAY 200
+#define RESET_EEPROM_ADDRESS 0
+#define RESET_ENABLED 1
+#define RESET_DISABLED 0
 #define SERIAL_PORT 9600
 #define LOOP_DELAY 85
 #define LV1_TICK_INC PI/30
@@ -67,7 +70,8 @@
 // START GLOBAL VARIABLES
 // START CONTROL GLOBAL VARIABLES
 int resetVal = 0;
-boolean resetEnabled = false;
+int eepromVal = RESET_DISABLED;
+int resetEnabled = 1;
 float lv1Tick = 0.0f;
 float lv2Tick = 0.0f;
 float lv3Tick = 0.0f;
@@ -104,6 +108,8 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KH
 // END GLOBAL VARIABLES
 
 void setup() {
+  EEPROM.write(RESET_EEPROM_ADDRESS, RESET_ENABLED);
+  
   // SET SERIAL CONNECTION
   Serial.begin(SERIAL_PORT);
   
@@ -144,6 +150,25 @@ void(* resetFunc) (void) = 0;
 
 void loop() {
   
+  // START RESET HANDLER
+  resetVal = analogRead(RESET_PIN);
+  eepromVal = EEPROM.read(RESET_EEPROM_ADDRESS);
+  if(resetVal >= RESET_THRESHOLD) { // WHEN CONNECTED
+    // START PREVENTING RESET
+    EEPROM.write(RESET_EEPROM_ADDRESS, RESET_DISABLED);
+    // END PREVENTING RESET
+  }
+  else if(resetVal < RESET_THRESHOLD) { // WHEN DISCONNECTED
+    if(eepromVal == RESET_DISABLED) {
+      EEPROM.write(RESET_EEPROM_ADDRESS, RESET_ENABLED);
+      resetFunc();
+    }
+    else if(eepromVal == RESET_ENABLED) {
+      EEPROM.write(RESET_EEPROM_ADDRESS, RESET_ENABLED);
+    }
+  }
+  // END RESET HANDLER
+  
   // START SENSOR MODULE
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(TRIG_DELAY_LOW_HIGH);
@@ -155,17 +180,6 @@ void loop() {
   //  Serial.println(distance);
   // END SENSOR MODULE
   
-  // START RESET HANDLER
-  resetVal = analogRead(RESET_PIN);
-  if(resetVal >= RESET_THRESHOLD) {
-    resetEnabled = true;
-  }
-  else if(resetEnabled && resetVal < RESET_THRESHOLD) {
-    resetEnabled = false;
-//    resetFunc();
-  }
-  // END RESET HANDLER
-
   // START MODE HANDLER
   modeVal = analogRead(MODE_PIN);
   // END MODE HANDLER
@@ -218,10 +232,10 @@ void loop() {
     leaveElapsed = millis() - left;
   }
 
-  Serial.print("startElapsed: ");
-  Serial.print(startElapsed);
-  Serial.print(" leaveElapsed: ");
-  Serial.println(leaveElapsed);
+//  Serial.print("startElapsed: ");
+//  Serial.print(startElapsed);
+//  Serial.print(" leaveElapsed: ");
+//  Serial.println(leaveElapsed);
   // END STATE HANDLER
 
   // START LIGHT MODULE
@@ -342,6 +356,8 @@ void loop() {
 
   delay(LOOP_DELAY);
 }
+
+
 
 void writeLineOnSD(const char* fileName, String whatToWrite) {
   File dataFile = SD.open(FILE_NAME, FILE_WRITE);
