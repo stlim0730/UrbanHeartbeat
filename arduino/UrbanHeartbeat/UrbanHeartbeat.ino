@@ -67,7 +67,6 @@ float lv1Tick = 0.0f;
 float lv2Tick = 0.0f;
 float lv3Tick = 0.0f;
 int state = OFF;
-int mode = NO_LIGHT_MODE;
 long started = -1;
 long startElapsed = 0;
 long left = -1;
@@ -141,17 +140,12 @@ void loop() {
   delayMicroseconds(TRIG_DELAY_HIGH_LOW);
   digitalWrite(TRIG_PIN, LOW);
   duration = pulseIn(ECHO_PIN, HIGH);
-  distance = (duration/2) / 29.1;
+  distance = (duration / 2) / 29.1;
   //  Serial.println(distance);
   // END SENSOR MODULE
 
   // START MODE HANDLER
   modeVal = analogRead(MODE_PIN);
-  if(modeVal < MODE_THRESHOLD) { // WHEN WIRE IS CONNECTED
-    mode = NO_LIGHT_MODE;
-  }
-  else { // WHEN THE WIRE IS NOT CONNECTED
-  }
   // END MODE HANDLER
 
   // START STATE HANDLER
@@ -161,9 +155,10 @@ void loop() {
     if(state == OFF) { // WHEN IT WAS OFF
       // START RECORDING TIMESTAMP
       String timestamp = getTimestampInSec();
+      String mode = "\t" + getModeStr();
       String level = "\tLEVEL1";
       String state = "\tON";
-      writeLineOnSD(FILE_NAME, timestamp + level + state);
+      writeLineOnSD(FILE_NAME, timestamp + mode + level + state);
       // END RECORDING TIMESTAMP
     }
     
@@ -183,9 +178,10 @@ void loop() {
     if(state == ON) { // WHEN IT WAS ON
       // START RECORDING TIMESTAMP
       String timestamp = getTimestampInSec();
+      String mode = "\t" + getModeStr();
       String level = "\tLEVEL1";
       String state = "\tOFF";
-      writeLineOnSD(FILE_NAME, timestamp + level + state);
+      writeLineOnSD(FILE_NAME, timestamp + mode + level + state);
       // END RECORDING TIMESTAMP
     }
     
@@ -200,10 +196,10 @@ void loop() {
     leaveElapsed = millis() - left;
   }
 
-//  Serial.print("startElapsed: ");
-//  Serial.print(startElapsed);
-//  Serial.print(" leaveElapsed: ");
-//  Serial.println(leaveElapsed);
+  Serial.print("startElapsed: ");
+  Serial.print(startElapsed);
+  Serial.print(" leaveElapsed: ");
+  Serial.println(leaveElapsed);
   // END STATE HANDLER
 
   // START LIGHT MODULE
@@ -212,14 +208,14 @@ void loop() {
     // START TURNING ON LIGHT LEVEL 1
     double lv1red1 = (sin(lv1Tick) + 1) * 127;
     double lv1green2 = (cos(lv1Tick) + 1) * 127;
-    pixels.setPixelColor(0, pixels.Color(0, lv1red1, 40));
-    pixels.setPixelColor(1, pixels.Color(lv1green2, 50, lv1green2));
+    turnOnPixelById(0, 0, lv1red1, 40);
+    turnOnPixelById(1, lv1green2, 50, lv1green2);
     // END TURNING ON LIGHT LEVEL 1
   }
   else { // WHEN NOONE IS HERE
     // START TURNING OFF LIGHT LEVEL 1
-    pixels.setPixelColor(0, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(1, pixels.Color(0, 0, 0));
+    turnOffPixelById(0);
+    turnOffPixelById(1);
     // END TURNING OFF LIGHT LEVEL 1
   }
   // END LIGHT LEVEL 1
@@ -231,9 +227,10 @@ void loop() {
     if(!lv2Lasting) { // WHEN LEVEL 2 IS OFF
       // START RECORDING TIMESTAMP
       String timestamp = getTimestampInSec();
+      String mode = "\t" + getModeStr();
       String level = "\tLEVEL2";
       String state = "\tON";
-      writeLineOnSD(FILE_NAME, timestamp + level + state);
+      writeLineOnSD(FILE_NAME, timestamp + mode + level + state);
       // END RECORDING TIMESTAMP
     }
     
@@ -241,8 +238,8 @@ void loop() {
     lv2Lasting = true;
     double lv2red1 = (sin(lv2Tick) + 1) * 127;
     double lv2green2 = (cos(lv2Tick) + 1) * 127;
-    pixels.setPixelColor(2, pixels.Color(0, lv2red1, 40));
-    pixels.setPixelColor(3, pixels.Color(lv2green2, 0, 0));
+    turnOnPixelById(2, 0, lv2red1, 40);
+    turnOnPixelById(3, lv2green2, 0, 0);
     // END TURNING ON LIGHT LEVEL 2
   }
   else { // WHEN NOONE HAS BEEN HERE FOR LONG ENOUGH
@@ -250,16 +247,17 @@ void loop() {
     if(lv2Lasting) { // WHEN LEVEL 2 IS ON
       // START RECORDING TIMESTAMP
       String timestamp = getTimestampInSec();
+      String mode = "\t" + getModeStr();
       String level = "\tLEVEL2";
       String state = "\tOFF";
-      writeLineOnSD(FILE_NAME, timestamp + level + state);
+      writeLineOnSD(FILE_NAME, timestamp + mode + level + state);
       // END RECORDING TIMESTAMP
     }
     
     // START TURNING OFF LIGHT LEVEL 2
     lv2Lasting = false;
-    pixels.setPixelColor(2, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(3, pixels.Color(0, 0, 0));
+    turnOffPixelById(2);
+    turnOffPixelById(3);
     // END TURNING OFF LIGHT LEVEL 2
   }
   // END LIGHT LEVEL 2
@@ -271,9 +269,10 @@ void loop() {
     if(!lv3Lasting) { // WHEN LEVEL 3 IS OFF
       // START RECORDING TIMESTAMP
       String timestamp = getTimestampInSec();
+      String mode = "\t" + getModeStr();
       String level = "\tLEVEL3";
       String state = "\tON";
-      writeLineOnSD(FILE_NAME, timestamp + level + state);
+      writeLineOnSD(FILE_NAME, timestamp + mode + level + state);
       // END RECORDING TIMESTAMP
     }
     
@@ -281,8 +280,8 @@ void loop() {
     lv3Lasting = true;
     double lv3blue1 = (sin(lv3Tick) + 1) * 127;
     double lv3red2 = (cos(lv3Tick) + 1) * 127;
-    pixels.setPixelColor(4, pixels.Color(0, 0, lv3blue1));
-    pixels.setPixelColor(5, pixels.Color(60, lv3red2, 0));
+    turnOnPixelById(4, 0, 0, lv3blue1);
+    turnOnPixelById(5, 60, lv3red2, 0);
     // END TURNING OFF LIGHT LEVEL 3
   }
   else { // WHEN NOONE HAS BEEN HERE FOR LONG ENOUGH
@@ -290,16 +289,17 @@ void loop() {
     if(lv3Lasting) { // WHEN LEVEL 3 IS ON
       // START RECORDING TIMESTAMP
       String timestamp = getTimestampInSec();
+      String mode = "\t" + getModeStr();
       String level = "\tLEVEL3";
       String state = "\tOFF";
-      writeLineOnSD(FILE_NAME, timestamp + level + state);
+      writeLineOnSD(FILE_NAME, timestamp + mode + level + state);
       // END RECORDING TIMESTAMP
     }
     
     // START TURNING OFF LIGHT LEVEL 3
     lv3Lasting = false;
-    pixels.setPixelColor(4, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(5, pixels.Color(0, 0, 0));
+    turnOffPixelById(4);
+    turnOffPixelById(5);
     // END TURNING OFF LIGHT LEVEL 3
   }
   // END LIGHT LEVEL 3
@@ -334,6 +334,25 @@ void writeLineOnSD(const char* fileName, String whatToWrite) {
   }
 }
 
+int getMode() {
+  if(modeVal < MODE_THRESHOLD) return NO_LIGHT_MODE;
+  else return LIGHT_MODE;
+}
+
+String getModeStr() {
+  if(getMode() == NO_LIGHT_MODE) return "NOLIGHT";
+  else return "LIGHT";
+}
+
 String getTimestampInSec() {
   return String(millis() / SECOND);
+}
+
+void turnOnPixelById(int pixelNo, int r, int g, int b) {
+  if(getMode() == NO_LIGHT_MODE) return;
+  else pixels.setPixelColor(pixelNo, pixels.Color(r, g, b));
+}
+
+void turnOffPixelById(int pixelNo) {
+  turnOnPixelById(pixelNo, 0, 0, 0);
 }
