@@ -20,6 +20,9 @@
 
 // START CONSTANTS
 // START CONTROL CONSTANTS
+#define RESET_PIN 4
+#define RESET_THRESHOLD 5
+#define RESET_DELAY 200
 #define SERIAL_PORT 9600
 #define LOOP_DELAY 85
 #define LV1_TICK_INC PI/30
@@ -63,14 +66,16 @@
 
 // START GLOBAL VARIABLES
 // START CONTROL GLOBAL VARIABLES
+int resetVal = 0;
+boolean resetEnabled = false;
 float lv1Tick = 0.0f;
 float lv2Tick = 0.0f;
 float lv3Tick = 0.0f;
 int state = OFF;
-long started = -1;
-long startElapsed = 0;
-long left = -1;
-long leaveElapsed = 0;
+unsigned long started = -1;
+unsigned long startElapsed = 0;
+unsigned long left = -1;
+unsigned long leaveElapsed = 0;
 // END CONTROL GLOBAL VARIABLES
 
 // START MODE CHANGER GLOBAL VARIABLES
@@ -102,6 +107,10 @@ void setup() {
   // SET SERIAL CONNECTION
   Serial.begin(SERIAL_PORT);
   
+  // START RESET HANDLER SETUP
+  pinMode(RESET_PIN, INPUT);
+  // END RESET HANDLER SETUP
+  
   // START MODE CHANGER SETUP
   pinMode(MODE_PIN, INPUT);
   // END MODE CHANGER SETUP
@@ -131,8 +140,10 @@ void setup() {
   // INITIALIZE NeoPixel LIBRARY
   pixels.begin();
 }
+void(* resetFunc) (void) = 0;
 
 void loop() {
+  
   // START SENSOR MODULE
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(TRIG_DELAY_LOW_HIGH);
@@ -143,6 +154,17 @@ void loop() {
   distance = (duration / 2) / 29.1;
   //  Serial.println(distance);
   // END SENSOR MODULE
+  
+  // START RESET HANDLER
+  resetVal = analogRead(RESET_PIN);
+  if(resetVal >= RESET_THRESHOLD) {
+    resetEnabled = true;
+  }
+  else if(resetEnabled && resetVal < RESET_THRESHOLD) {
+    resetEnabled = false;
+//    resetFunc();
+  }
+  // END RESET HANDLER
 
   // START MODE HANDLER
   modeVal = analogRead(MODE_PIN);
