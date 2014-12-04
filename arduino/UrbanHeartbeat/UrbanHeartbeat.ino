@@ -30,11 +30,16 @@
 // END CONTROL CONSTANTS
 
 // START STATE CONSTANTS
-#define NO_LIGHT_MODE 10
-#define LIGHT_MODE 20
 #define ON 1
 #define OFF -1
 // END STATE CONSTANTS
+
+// START MODE CHANGER MODULE CONSTANTS
+#define MODE_PIN 5
+#define MODE_THRESHOLD 5
+#define NO_LIGHT_MODE 10
+#define LIGHT_MODE 20
+// END MODE CHANGER MODULE CONSTANTS
 
 // START SENSOR MODULE CONSTANTS
 #define ULTRASONIC_THRESHOLD 185 // FOR RELEASE
@@ -62,11 +67,16 @@ float lv1Tick = 0.0f;
 float lv2Tick = 0.0f;
 float lv3Tick = 0.0f;
 int state = OFF;
+int mode = NO_LIGHT_MODE;
 long started = -1;
 long startElapsed = 0;
 long left = -1;
 long leaveElapsed = 0;
 // END CONTROL GLOBAL VARIABLES
+
+// START MODE CHANGER GLOBAL VARIABLES
+int modeVal = 0;
+// END MODE CHANGER GLOBAL VARIABLES
 
 // START SENSOR MODULE GLOBAL VARIABLES
 long distance = 300;
@@ -92,7 +102,11 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KH
 void setup() {
   // SET SERIAL CONNECTION
   Serial.begin(SERIAL_PORT);
-
+  
+  // START MODE CHANGER SETUP
+  pinMode(MODE_PIN, INPUT);
+  // END MODE CHANGER SETUP
+  
   // START SENSOR MODULE SETUP
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
@@ -130,6 +144,15 @@ void loop() {
   distance = (duration/2) / 29.1;
   //  Serial.println(distance);
   // END SENSOR MODULE
+
+  // START MODE HANDLER
+  modeVal = analogRead(MODE_PIN);
+  if(modeVal < MODE_THRESHOLD) { // WHEN WIRE IS CONNECTED
+    mode = NO_LIGHT_MODE;
+  }
+  else { // WHEN THE WIRE IS NOT CONNECTED
+  }
+  // END MODE HANDLER
 
   // START STATE HANDLER
   if(distance <= ULTRASONIC_THRESHOLD) {
@@ -177,10 +200,10 @@ void loop() {
     leaveElapsed = millis() - left;
   }
 
-  Serial.print("startElapsed: ");
-  Serial.print(startElapsed);
-  Serial.print(" leaveElapsed: ");
-  Serial.println(leaveElapsed);
+//  Serial.print("startElapsed: ");
+//  Serial.print(startElapsed);
+//  Serial.print(" leaveElapsed: ");
+//  Serial.println(leaveElapsed);
   // END STATE HANDLER
 
   // START LIGHT MODULE
