@@ -38,7 +38,7 @@
 
 // START SENSOR MODULE CONSTANTS
 #define ULTRASONIC_THRESHOLD 185 // FOR RELEASE
-#define ULTRASONIC_THRESHOLD 15 // FOR DEBUGGING
+//#define ULTRASONIC_THRESHOLD 15 // FOR DEBUGGING
 #define TRIG_PIN 8
 #define ECHO_PIN 7
 #define TRIG_DELAY_LOW_HIGH 2
@@ -189,14 +189,14 @@ void loop() {
     // START TURNING ON LIGHT LEVEL 1
     double lv1red1 = (sin(lv1Tick) + 1) * 127;
     double lv1green2 = (cos(lv1Tick) + 1) * 127;
-    pixels.setPixelColor(0, pixels.Color(0, lv1red1, 40));
-    pixels.setPixelColor(1, pixels.Color(lv1green2, 50, lv1green2));
+    //pixels.setPixelColor(0, pixels.Color(0, lv1red1, 40));
+    //pixels.setPixelColor(1, pixels.Color(lv1green2, 50, lv1green2));
     // END TURNING ON LIGHT LEVEL 1
   }
   else { // WHEN NOONE IS HERE
     // START TURNING OFF LIGHT LEVEL 1
-    pixels.setPixelColor(0, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(1, pixels.Color(0, 0, 0));
+    //pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+    //pixels.setPixelColor(1, pixels.Color(0, 0, 0));
     // END TURNING OFF LIGHT LEVEL 1
   }
   // END LIGHT LEVEL 1
@@ -218,8 +218,8 @@ void loop() {
     lv2Lasting = true;
     double lv2red1 = (sin(lv2Tick) + 1) * 127;
     double lv2green2 = (cos(lv2Tick) + 1) * 127;
-    pixels.setPixelColor(2, pixels.Color(0, lv2red1, 40));
-    pixels.setPixelColor(3, pixels.Color(lv2green2, 0, 0));
+    //pixels.setPixelColor(2, pixels.Color(0, lv2red1, 40));
+    //pixels.setPixelColor(3, pixels.Color(lv2green2, 0, 0));
     // END TURNING ON LIGHT LEVEL 2
   }
   else { // WHEN NOONE HAS BEEN HERE FOR LONG ENOUGH
@@ -235,8 +235,8 @@ void loop() {
     
     // START TURNING OFF LIGHT LEVEL 2
     lv2Lasting = false;
-    pixels.setPixelColor(2, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(3, pixels.Color(0, 0, 0));
+    //pixels.setPixelColor(2, pixels.Color(0, 0, 0));
+    //pixels.setPixelColor(3, pixels.Color(0, 0, 0));
     // END TURNING OFF LIGHT LEVEL 2
   }
   // END LIGHT LEVEL 2
@@ -258,8 +258,8 @@ void loop() {
     lv3Lasting = true;
     double lv3blue1 = (sin(lv3Tick) + 1) * 127;
     double lv3red2 = (cos(lv3Tick) + 1) * 127;
-    pixels.setPixelColor(4, pixels.Color(0, 0, lv3blue1));
-    pixels.setPixelColor(5, pixels.Color(60, lv3red2, 0));
+    //pixels.setPixelColor(4, pixels.Color(0, 0, lv3blue1));
+    //pixels.setPixelColor(5, pixels.Color(60, lv3red2, 0));
     // END TURNING OFF LIGHT LEVEL 3
   }
   else { // WHEN NOONE HAS BEEN HERE FOR LONG ENOUGH
@@ -275,8 +275,8 @@ void loop() {
     
     // START TURNING OFF LIGHT LEVEL 3
     lv3Lasting = false;
-    pixels.setPixelColor(4, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(5, pixels.Color(0, 0, 0));
+    //pixels.setPixelColor(4, pixels.Color(0, 0, 0));
+    //pixels.setPixelColor(5, pixels.Color(0, 0, 0));
     // END TURNING OFF LIGHT LEVEL 3
   }
   // END LIGHT LEVEL 3
