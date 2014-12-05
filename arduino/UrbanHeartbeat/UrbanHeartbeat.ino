@@ -398,11 +398,3 @@ String getTimestampInSec() {
   return String(millis() / SECOND);
 }
 
-//void turnOnPixelById(int pixelNo, int r, int g, int b) {
-//  if(getMode() == NO_LIGHT_MODE) return;
-//  else pixels.setPixelColor(pixelNo, pixels.Color(r, g, b));
-//}
-
-//void turnOffPixelById(int pixelNo) {
-//  turnOnPixelById(pixelNo, 0, 0, 0);
-//}
