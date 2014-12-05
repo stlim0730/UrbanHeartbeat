@@ -11,7 +11,7 @@
 // CSK -> 13
 // MISO -> 12
 //
-// NeoPixel LEDs (DAISY CHAINED)
+// NeoPixel LEDs
 // ~6
 // END WIRING
 
@@ -30,15 +30,13 @@
 // END CONTROL CONSTANTS
 
 // START STATE CONSTANTS
-#define NO_LIGHT_MODE 10
-#define LIGHT_MODE 20
 #define ON 1
 #define OFF -1
 // END STATE CONSTANTS
 
 // START SENSOR MODULE CONSTANTS
 #define ULTRASONIC_THRESHOLD 185 // FOR RELEASE
-#define ULTRASONIC_THRESHOLD 15 // FOR DEBUGGING
+//#define ULTRASONIC_THRESHOLD 15 // FOR DEBUGGING
 #define TRIG_PIN 8
 #define ECHO_PIN 7
 #define TRIG_DELAY_LOW_HIGH 2
@@ -87,6 +85,7 @@ boolean lv3Lasting = false;
 // Note that for older NeoPixel strips you might need to change the third parameter--see the strandtest
 // example for more information on possible values.
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+
 // END GLOBAL VARIABLES
 
 void setup() {
@@ -133,14 +132,21 @@ void loop() {
 
   // START STATE HANDLER
   if(distance <= ULTRASONIC_THRESHOLD) {
-    // SOMEONE IS HERE
     
-    if(state == OFF) { // WHEN IT WAS OFF
+    if(state==OFF) {
       // START RECORDING TIMESTAMP
-      String timestamp = getTimestampInSec();
-      String level = "\tLEVEL1";
-      String state = "\tON";
-      writeLineOnSD(FILE_NAME, timestamp + level + state);
+      String timestamp = String(millis());
+      File dataFile = SD.open(FILE_NAME, FILE_WRITE);
+      if(dataFile) {
+        dataFile.print(timestamp);
+        dataFile.println(" LEVEL1ON");
+        dataFile.close();
+        // print to the serial port too:
+        Serial.println(timestamp);
+      }
+      else {
+        Serial.println("error opening " + String(FILE_NAME));
+      }
       // END RECORDING TIMESTAMP
     }
     
@@ -155,14 +161,21 @@ void loop() {
     startElapsed = millis() - started;
   }
   else {
-    // NOONE IS HERE
     
-    if(state == ON) { // WHEN IT WAS ON
+    if(state==ON) {
       // START RECORDING TIMESTAMP
-      String timestamp = getTimestampInSec();
-      String level = "\tLEVEL1";
-      String state = "\tOFF";
-      writeLineOnSD(FILE_NAME, timestamp + level + state);
+      String timestamp = String(millis());
+      File dataFile = SD.open(FILE_NAME, FILE_WRITE);
+      if(dataFile) {
+        dataFile.print(timestamp);
+        dataFile.println(" LEVEL1OFF");
+        dataFile.close();
+        // print to the serial port too:
+        Serial.println(timestamp);
+      }
+      else {
+        Serial.println("error opening " + String(FILE_NAME));
+      }
       // END RECORDING TIMESTAMP
     }
     
@@ -185,106 +198,125 @@ void loop() {
 
   // START LIGHT MODULE
   // START LIGHT LEVEL 1
-  if(state == ON) { // WHEN SONEONE IS HERE
-    // START TURNING ON LIGHT LEVEL 1
+  if(state == ON) {    
     double lv1red1 = (sin(lv1Tick) + 1) * 127;
     double lv1green2 = (cos(lv1Tick) + 1) * 127;
     pixels.setPixelColor(0, pixels.Color(0, lv1red1, 40));
     pixels.setPixelColor(1, pixels.Color(lv1green2, 50, lv1green2));
-    // END TURNING ON LIGHT LEVEL 1
   }
-  else { // WHEN NOONE IS HERE
-    // START TURNING OFF LIGHT LEVEL 1
+  else {
     pixels.setPixelColor(0, pixels.Color(0, 0, 0));
     pixels.setPixelColor(1, pixels.Color(0, 0, 0));
-    // END TURNING OFF LIGHT LEVEL 1
   }
   // END LIGHT LEVEL 1
   
   // START LIGHT LEVEL 2
-  if(startElapsed > 10 * SECOND // WHEN SOMEONE STAYED FOR LONG ENOUGH
-  || (lv2Lasting && leaveElapsed < 15 * SECOND)) { // WHEN THE LIGHT NEEDS TO STAY AFTER HE LEFT
+  if(startElapsed > 10 * SECOND
+  || (lv2Lasting && leaveElapsed < 15 * SECOND)) {
     
-    if(!lv2Lasting) { // WHEN LEVEL 2 IS OFF
+    if(!lv2Lasting) {
       // START RECORDING TIMESTAMP
-      String timestamp = getTimestampInSec();
-      String level = "\tLEVEL2";
-      String state = "\tON";
-      writeLineOnSD(FILE_NAME, timestamp + level + state);
+      String timestamp = String(millis());
+      File dataFile = SD.open(FILE_NAME, FILE_WRITE);
+      if(dataFile) {
+        dataFile.print(timestamp);
+        dataFile.println(" LEVEL2ON");
+        dataFile.close();
+        // print to the serial port too:
+        Serial.println(timestamp);
+      }
+      else {
+        Serial.println("error opening " + String(FILE_NAME));
+      }
       // END RECORDING TIMESTAMP
     }
     
-    // START TURNING ON LIGHT LEVEL 2
     lv2Lasting = true;
     double lv2red1 = (sin(lv2Tick) + 1) * 127;
     double lv2green2 = (cos(lv2Tick) + 1) * 127;
     pixels.setPixelColor(2, pixels.Color(0, lv2red1, 40));
     pixels.setPixelColor(3, pixels.Color(lv2green2, 0, 0));
-    // END TURNING ON LIGHT LEVEL 2
   }
-  else { // WHEN NOONE HAS BEEN HERE FOR LONG ENOUGH
+  else {
     
-    if(lv2Lasting) { // WHEN LEVEL 2 IS ON
+    if(lv2Lasting) {
       // START RECORDING TIMESTAMP
-      String timestamp = getTimestampInSec();
-      String level = "\tLEVEL2";
-      String state = "\tOFF";
-      writeLineOnSD(FILE_NAME, timestamp + level + state);
+      String timestamp = String(millis());
+      File dataFile = SD.open(FILE_NAME, FILE_WRITE);
+      if(dataFile) {
+        dataFile.print(timestamp);
+        dataFile.println(" LEVEL2OFF");
+        dataFile.close();
+        // print to the serial port too:
+        Serial.println(timestamp);
+      }
+      else {
+        Serial.println("error opening " + String(FILE_NAME));
+      }
       // END RECORDING TIMESTAMP
     }
     
-    // START TURNING OFF LIGHT LEVEL 2
     lv2Lasting = false;
     pixels.setPixelColor(2, pixels.Color(0, 0, 0));
     pixels.setPixelColor(3, pixels.Color(0, 0, 0));
-    // END TURNING OFF LIGHT LEVEL 2
   }
   // END LIGHT LEVEL 2
   
   // START LIGHT LEVEL 3
-  if(startElapsed > MINUTE // WHEN SOMEONE STAYED FOR LONG ENOUGH
-  || (lv3Lasting && leaveElapsed < 90 * SECOND)) { // WHEN THE LIGHT NEEDS TO STAY AFTER HE LEFT
+  if(startElapsed > MINUTE
+  || (lv3Lasting && leaveElapsed < 90 * SECOND)) {
     
-    if(!lv3Lasting) { // WHEN LEVEL 3 IS OFF
+    if(!lv3Lasting) {
       // START RECORDING TIMESTAMP
-      String timestamp = getTimestampInSec();
-      String level = "\tLEVEL3";
-      String state = "\tON";
-      writeLineOnSD(FILE_NAME, timestamp + level + state);
+      String timestamp = String(millis());
+      File dataFile = SD.open(FILE_NAME, FILE_WRITE);
+      if(dataFile) {
+        dataFile.print(timestamp);
+        dataFile.println(" LEVEL2ON");
+        dataFile.close();
+        // print to the serial port too:
+        Serial.println(timestamp);
+      }
+      else {
+        Serial.println("error opening " + String(FILE_NAME));
+      }
       // END RECORDING TIMESTAMP
     }
     
-    // START TURNING ON LIGHT LEVEL 3
     lv3Lasting = true;
     double lv3blue1 = (sin(lv3Tick) + 1) * 127;
     double lv3red2 = (cos(lv3Tick) + 1) * 127;
     pixels.setPixelColor(4, pixels.Color(0, 0, lv3blue1));
     pixels.setPixelColor(5, pixels.Color(60, lv3red2, 0));
-    // END TURNING OFF LIGHT LEVEL 3
   }
-  else { // WHEN NOONE HAS BEEN HERE FOR LONG ENOUGH
+  else {
     
-    if(lv3Lasting) { // WHEN LEVEL 3 IS ON
+    if(lv3Lasting) {
       // START RECORDING TIMESTAMP
-      String timestamp = getTimestampInSec();
-      String level = "\tLEVEL3";
-      String state = "\tOFF";
-      writeLineOnSD(FILE_NAME, timestamp + level + state);
+      String timestamp = String(millis());
+      File dataFile = SD.open(FILE_NAME, FILE_WRITE);
+      if(dataFile) {
+        dataFile.print(timestamp);
+        dataFile.println(" LEVEL2OFF");
+        dataFile.close();
+        // print to the serial port too:
+        Serial.println(timestamp);
+      }
+      else {
+        Serial.println("error opening " + String(FILE_NAME));
+      }
       // END RECORDING TIMESTAMP
     }
     
-    // START TURNING OFF LIGHT LEVEL 3
     lv3Lasting = false;
     pixels.setPixelColor(4, pixels.Color(0, 0, 0));
     pixels.setPixelColor(5, pixels.Color(0, 0, 0));
-    // END TURNING OFF LIGHT LEVEL 3
   }
   // END LIGHT LEVEL 3
   
-  pixels.show(); // APPLY THE PIXELS
+  pixels.show();
   // END LIGHT MODULE
 
-  // START TICKING
   lv1Tick += LV1_TICK_INC;
   if(lv1Tick > 2 * PI) lv1Tick = 0;
 
@@ -293,24 +325,7 @@ void loop() {
 
   lv3Tick += LV3_TICK_INC;
   if(lv3Tick > 2 * PI) lv3Tick = 0;
-  // END TICKING
 
   delay(LOOP_DELAY);
 }
 
-void writeLineOnSD(const char* fileName, String whatToWrite) {
-  File dataFile = SD.open(FILE_NAME, FILE_WRITE);
-  if(dataFile) {
-    dataFile.println(whatToWrite);
-    dataFile.close();
-    // print to the serial port too:
-    Serial.println(whatToWrite);
-  }
-  else {
-    Serial.println("Error writing " + String(fileName));
-  }
-}
-
-String getTimestampInSec() {
-  return String(millis() / SECOND);
-}
