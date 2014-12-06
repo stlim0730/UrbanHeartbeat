@@ -13,6 +13,12 @@
 //
 // NeoPixel LEDs (DAISY CHAINED)
 // ~6
+//
+// Reset Wire
+// A0
+//
+// Mode Changer Wire
+// A1
 // END WIRING
 
 #include <Adafruit_NeoPixel.h>
@@ -27,7 +33,7 @@
 #define RESET_ENABLED 1
 #define RESET_DISABLED 0
 #define SERIAL_PORT 9600
-#define LOOP_DELAY 85
+#define LOOP_DELAY 100
 #define LV1_TICK_INC PI/30
 #define LV2_TICK_INC PI/15
 #define LV3_TICK_INC PI/7
@@ -48,12 +54,12 @@
 // END MODE CHANGER MODULE CONSTANTS
 
 // START SENSOR MODULE CONSTANTS
-#define ULTRASONIC_THRESHOLD 150 // FOR RELEASE
+#define ULTRASONIC_THRESHOLD 125 // FOR RELEASE
 //#define ULTRASONIC_THRESHOLD 15 // FOR DEBUGGING
 #define TRIG_PIN 8
 #define ECHO_PIN 7
 #define TRIG_DELAY_LOW_HIGH 2
-#define TRIG_DELAY_HIGH_LOW 10
+#define TRIG_DELAY_HIGH_LOW 5
 // END SENSOR MODULE CONSTANTS
 
 // START LIGHT MODULE CONSTANTS
@@ -99,6 +105,10 @@ const char FILE_NAME[] = "data.txt";
 boolean lv1Lasting = false;
 boolean lv2Lasting = false;
 boolean lv3Lasting = false;
+const int level2OnDelay = 10 * SECOND;
+const int level2OffDelay = 15 * SECOND;
+const int level3OnDelay = 60 * SECOND;
+const int level3OffDelay = 90 * SECOND;
 // END ACTIVITY VARIABLES
 
 // When we setup the NeoPixel library, we tell it how many pixels, and which pin to use to send signals.
@@ -158,6 +168,10 @@ void setup() {
   
   distance = 300;
   duration = 0;
+  
+  lv1Lasting = false;
+  lv2Lasting = false;
+  lv3Lasting = false;
 }
 void(* resetFunc) (void) = 0;
 
@@ -193,18 +207,18 @@ void loop() {
   digitalWrite(TRIG_PIN, LOW);
   duration = pulseIn(ECHO_PIN, HIGH);
   distance = (duration / 2) / 29.1;
-  //  Serial.println(distance);
+  Serial.println(distance);
   // END SENSOR MODULE
   
   // START MODE HANDLER
   modeVal = analogRead(MODE_PIN);
   if(modeVal < RESET_THRESHOLD) { // WHEN CONNECTED
     mode = NO_LIGHT_MODE;
-    Serial.println("NOLIGHT");
+//    Serial.println("NOLIGHT");
   }
   else if(modeVal >= RESET_THRESHOLD) { // WHEN DISCONNECTED
     mode = LIGHT_MODE;
-    Serial.println("LIGHT");
+//    Serial.println("LIGHT");
   }
   // END MODE HANDLER
 
@@ -214,11 +228,14 @@ void loop() {
     
     if(state == OFF) { // WHEN IT WAS OFF
       // START RECORDING TIMESTAMP
-      String timestamp = getTimestampInSec();
-      String mode = "\t" + getModeStr();
-      String level = "\tLEVEL1";
-      String state = "\tON";
-      writeLineOnSD(FILE_NAME, timestamp + mode + level + state);
+      String timestamp = String(millis());
+      String distanceStr = "\t" + String(distance);
+      String modeStr;
+      if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
+      else modeStr = "\tLIGHT";
+      String levelStr = "\tLEVEL1";
+      String stateStr = "\tON";
+      writeLineOnSD(FILE_NAME, timestamp + distanceStr + modeStr + levelStr + stateStr);
       // END RECORDING TIMESTAMP
     }
     
@@ -237,11 +254,14 @@ void loop() {
     
     if(state == ON) { // WHEN IT WAS ON
       // START RECORDING TIMESTAMP
-      String timestamp = getTimestampInSec();
-      String mode = "\t" + getModeStr();
-      String level = "\tLEVEL1";
-      String state = "\tOFF";
-      writeLineOnSD(FILE_NAME, timestamp + mode + level + state);
+      String timestamp = String(millis());
+      String distanceStr = "\t" + String(distance);
+      String modeStr;
+      if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
+      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
+      String levelStr = "\tLEVEL1";
+      String stateStr = "\tOFF";
+      writeLineOnSD(FILE_NAME, timestamp + distanceStr + modeStr + levelStr + stateStr);
       // END RECORDING TIMESTAMP
     }
     
@@ -283,16 +303,19 @@ void loop() {
   // END LIGHT LEVEL 1
   
   // START LIGHT LEVEL 2
-  if(startElapsed > 10 * SECOND // WHEN SOMEONE STAYED FOR LONG ENOUGH
-  || (lv2Lasting && leaveElapsed < 15 * SECOND)) { // WHEN THE LIGHT NEEDS TO STAY AFTER HE LEFT
+  if(startElapsed > level2OnDelay // WHEN SOMEONE STAYED FOR LONG ENOUGH
+  || (lv2Lasting && leaveElapsed < level2OffDelay)) { // WHEN THE LIGHT NEEDS TO STAY AFTER HE LEFT
     
     if(!lv2Lasting) { // WHEN LEVEL 2 IS OFF
       // START RECORDING TIMESTAMP
-      String timestamp = getTimestampInSec();
-      String mode = "\t" + getModeStr();
-      String level = "\tLEVEL2";
-      String state = "\tON";
-      writeLineOnSD(FILE_NAME, timestamp + mode + level + state);
+      String timestamp = String(millis());
+      String distanceStr = "\t" + String(distance);
+      String modeStr;
+      if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
+      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
+      String levelStr = "\tLEVEL2";
+      String stateStr = "\tON";
+      writeLineOnSD(FILE_NAME, timestamp + distanceStr + modeStr + levelStr + stateStr);
       // END RECORDING TIMESTAMP
     }
     
@@ -310,11 +333,14 @@ void loop() {
     
     if(lv2Lasting) { // WHEN LEVEL 2 IS ON
       // START RECORDING TIMESTAMP
-      String timestamp = getTimestampInSec();
-      String mode = "\t" + getModeStr();
-      String level = "\tLEVEL2";
-      String state = "\tOFF";
-      writeLineOnSD(FILE_NAME, timestamp + mode + level + state);
+      String timestamp = String(millis());
+      String distanceStr = "\t" + String(distance);
+      String modeStr;
+      if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
+      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
+      String levelStr = "\tLEVEL2";
+      String stateStr = "\tOFF";
+      writeLineOnSD(FILE_NAME, timestamp + distanceStr + modeStr + levelStr + stateStr);
       // END RECORDING TIMESTAMP
     }
     
@@ -327,16 +353,19 @@ void loop() {
   // END LIGHT LEVEL 2
   
   // START LIGHT LEVEL 3
-  if(startElapsed > MINUTE // WHEN SOMEONE STAYED FOR LONG ENOUGH
-  || (lv3Lasting && leaveElapsed < 90 * SECOND)) { // WHEN THE LIGHT NEEDS TO STAY AFTER HE LEFT
+  if(startElapsed > level3OnDelay // WHEN SOMEONE STAYED FOR LONG ENOUGH
+  || (lv3Lasting && leaveElapsed < level3OffDelay)) { // WHEN THE LIGHT NEEDS TO STAY AFTER HE LEFT
     
     if(!lv3Lasting) { // WHEN LEVEL 3 IS OFF
       // START RECORDING TIMESTAMP
-      String timestamp = getTimestampInSec();
-      String mode = "\t" + getModeStr();
-      String level = "\tLEVEL3";
-      String state = "\tON";
-      writeLineOnSD(FILE_NAME, timestamp + mode + level + state);
+      String timestamp = String(millis());
+      String distanceStr = "\t" + String(distance);
+      String modeStr;
+      if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
+      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
+      String levelStr = "\tLEVEL3";
+      String stateStr = "\tON";
+      writeLineOnSD(FILE_NAME, timestamp + distanceStr + modeStr + levelStr + stateStr);
       // END RECORDING TIMESTAMP
     }
     
@@ -354,11 +383,14 @@ void loop() {
     
     if(lv3Lasting) { // WHEN LEVEL 3 IS ON
       // START RECORDING TIMESTAMP
-      String timestamp = getTimestampInSec();
-      String mode = "\t" + getModeStr();
-      String level = "\tLEVEL3";
-      String state = "\tOFF";
-      writeLineOnSD(FILE_NAME, timestamp + mode + level + state);
+      String timestamp = String(millis());
+      String distanceStr = "\t" + String(distance);
+      String modeStr;
+      if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
+      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
+      String levelStr = "\tLEVEL3";
+      String stateStr = "\tOFF";
+      writeLineOnSD(FILE_NAME, timestamp + distanceStr + modeStr + levelStr + stateStr);
       // END RECORDING TIMESTAMP
     }
     
@@ -393,19 +425,10 @@ void writeLineOnSD(const char* fileName, String whatToWrite) {
     dataFile.println(whatToWrite);
     dataFile.close();
     // print to the serial port too:
-    Serial.println(whatToWrite);
+//    Serial.println(whatToWrite);
   }
   else {
     Serial.println("Error writing " + String(fileName));
   }
-}
-
-String getModeStr() {
-  if(mode == NO_LIGHT_MODE) return "NOLIGHT";
-  else return "LIGHT";
-}
-
-String getTimestampInSec() {
-  return String(millis() / SECOND);
 }
 
