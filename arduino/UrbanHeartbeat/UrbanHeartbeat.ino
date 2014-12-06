@@ -22,7 +22,7 @@
 // START CONSTANTS
 // START CONTROL CONSTANTS
 #define RESET_PIN 0
-#define RESET_THRESHOLD 5
+#define RESET_THRESHOLD 20
 #define RESET_EEPROM_ADDRESS 0
 #define RESET_ENABLED 1
 #define RESET_DISABLED 0
@@ -42,13 +42,13 @@
 
 // START MODE CHANGER MODULE CONSTANTS
 #define MODE_PIN 1
-#define MODE_THRESHOLD 5
+#define MODE_THRESHOLD 1
 #define NO_LIGHT_MODE 10
 #define LIGHT_MODE 20
 // END MODE CHANGER MODULE CONSTANTS
 
 // START SENSOR MODULE CONSTANTS
-#define ULTRASONIC_THRESHOLD 185 // FOR RELEASE
+#define ULTRASONIC_THRESHOLD 150 // FOR RELEASE
 //#define ULTRASONIC_THRESHOLD 15 // FOR DEBUGGING
 #define TRIG_PIN 8
 #define ECHO_PIN 7
@@ -71,19 +71,19 @@
 // START CONTROL GLOBAL VARIABLES
 int resetVal = 0;
 int eepromVal = RESET_DISABLED;
-int resetEnabled = 1;
 float lv1Tick = 0.0f;
 float lv2Tick = 0.0f;
 float lv3Tick = 0.0f;
 int state = OFF;
-unsigned long started = -1;
+long started = -1;
 unsigned long startElapsed = 0;
-unsigned long left = -1;
+long left = -1;
 unsigned long leaveElapsed = 0;
 // END CONTROL GLOBAL VARIABLES
 
 // START MODE CHANGER GLOBAL VARIABLES
 int modeVal = 0;
+int mode = NO_LIGHT_MODE;
 // END MODE CHANGER GLOBAL VARIABLES
 
 // START SENSOR MODULE GLOBAL VARIABLES
@@ -109,7 +109,7 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KH
 
 void setup() {
   // SET INITIAL RESET VALUE
-  EEPROM.write(RESET_EEPROM_ADDRESS, RESET_ENABLED);
+//  EEPROM.write(RESET_EEPROM_ADDRESS, RESET_ENABLED);
   
   // SET SERIAL CONNECTION
   Serial.begin(SERIAL_PORT);
@@ -146,8 +146,19 @@ void setup() {
 
   // INITIALIZE NeoPixel LIBRARY
   pixels.begin();
+  
+  lv1Tick = 0.0f;
+  lv2Tick = 0.0f;
+  lv3Tick = 0.0f;
+  state = OFF;
+  started = -1;
+  startElapsed = 0;
+  left = -1;
+  leaveElapsed = 0;
+  
+  distance = 300;
+  duration = 0;
 }
-
 void(* resetFunc) (void) = 0;
 
 void loop() {
@@ -155,18 +166,21 @@ void loop() {
   // START RESET HANDLER
   resetVal = analogRead(RESET_PIN);
   eepromVal = EEPROM.read(RESET_EEPROM_ADDRESS);
-  if(resetVal >= RESET_THRESHOLD) { // WHEN CONNECTED
+  if(resetVal < RESET_THRESHOLD) { // WHEN CONNECTED
+//    Serial.println("NO RESET");
     // START PREVENTING RESET
     EEPROM.write(RESET_EEPROM_ADDRESS, RESET_DISABLED);
     // END PREVENTING RESET
   }
-  else if(resetVal < RESET_THRESHOLD) { // WHEN DISCONNECTED
+  else if(resetVal >= RESET_THRESHOLD) { // WHEN DISCONNECTED
     if(eepromVal == RESET_DISABLED) {
+      Serial.println("RESET");
       EEPROM.write(RESET_EEPROM_ADDRESS, RESET_ENABLED);
       resetFunc();
     }
     else if(eepromVal == RESET_ENABLED) {
-      EEPROM.write(RESET_EEPROM_ADDRESS, RESET_ENABLED);
+//      Serial.println("NO RESET");
+      EEPROM.write(RESET_EEPROM_ADDRESS, RESET_DISABLED);
     }
   }
   // END RESET HANDLER
@@ -184,6 +198,14 @@ void loop() {
   
   // START MODE HANDLER
   modeVal = analogRead(MODE_PIN);
+  if(modeVal < RESET_THRESHOLD) { // WHEN CONNECTED
+    mode = NO_LIGHT_MODE;
+    Serial.println("NOLIGHT");
+  }
+  else if(modeVal >= RESET_THRESHOLD) { // WHEN DISCONNECTED
+    mode = LIGHT_MODE;
+    Serial.println("LIGHT");
+  }
   // END MODE HANDLER
 
   // START STATE HANDLER
@@ -246,7 +268,7 @@ void loop() {
     // START TURNING ON LIGHT LEVEL 1
     double lv1red1 = (sin(lv1Tick) + 1) * 127;
     double lv1green2 = (cos(lv1Tick) + 1) * 127;
-    if(getMode() != NO_LIGHT_MODE) {
+    if(mode == LIGHT_MODE) {
       pixels.setPixelColor(0, pixels.Color(0, lv1red1, 40));
       pixels.setPixelColor(1, pixels.Color(lv1green2, 50, lv1green2));
     }
@@ -254,10 +276,8 @@ void loop() {
   }
   else { // WHEN NOONE IS HERE
     // START TURNING OFF LIGHT LEVEL 1
-    if(getMode() != NO_LIGHT_MODE) {
-      pixels.setPixelColor(0, pixels.Color(0, 0, 0));
-      pixels.setPixelColor(1, pixels.Color(0, 0, 0));
-    }
+    pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+    pixels.setPixelColor(1, pixels.Color(0, 0, 0));
     // END TURNING OFF LIGHT LEVEL 1
   }
   // END LIGHT LEVEL 1
@@ -280,7 +300,7 @@ void loop() {
     lv2Lasting = true;
     double lv2red1 = (sin(lv2Tick) + 1) * 127;
     double lv2green2 = (cos(lv2Tick) + 1) * 127;
-    if(getMode() != NO_LIGHT_MODE) {
+    if(mode == LIGHT_MODE) {
       pixels.setPixelColor(2, pixels.Color(0, lv2red1, 40));
       pixels.setPixelColor(3, pixels.Color(lv2green2, 0, 0));
     }
@@ -300,10 +320,8 @@ void loop() {
     
     // START TURNING OFF LIGHT LEVEL 2
     lv2Lasting = false;
-    if(getMode() != NO_LIGHT_MODE) {
-      pixels.setPixelColor(2, pixels.Color(0, 0, 0));
-      pixels.setPixelColor(3, pixels.Color(0, 0, 0));
-    }
+    pixels.setPixelColor(2, pixels.Color(0, 0, 0));
+    pixels.setPixelColor(3, pixels.Color(0, 0, 0));
     // END TURNING OFF LIGHT LEVEL 2
   }
   // END LIGHT LEVEL 2
@@ -326,7 +344,7 @@ void loop() {
     lv3Lasting = true;
     double lv3blue1 = (sin(lv3Tick) + 1) * 127;
     double lv3red2 = (cos(lv3Tick) + 1) * 127;
-    if(getMode() != NO_LIGHT_MODE) {
+    if(mode == LIGHT_MODE) {
       pixels.setPixelColor(4, pixels.Color(0, 0, lv3blue1));
       pixels.setPixelColor(5, pixels.Color(60, lv3red2, 0));
     }
@@ -346,10 +364,8 @@ void loop() {
     
     // START TURNING OFF LIGHT LEVEL 3
     lv3Lasting = false;
-    if(getMode() != NO_LIGHT_MODE) {
-      pixels.setPixelColor(4, pixels.Color(0, 0, 0));
-      pixels.setPixelColor(5, pixels.Color(0, 0, 0));
-    }
+    pixels.setPixelColor(4, pixels.Color(0, 0, 0));
+    pixels.setPixelColor(5, pixels.Color(0, 0, 0));
     // END TURNING OFF LIGHT LEVEL 3
   }
   // END LIGHT LEVEL 3
@@ -384,13 +400,8 @@ void writeLineOnSD(const char* fileName, String whatToWrite) {
   }
 }
 
-int getMode() {
-  if(modeVal < MODE_THRESHOLD) return NO_LIGHT_MODE;
-  else return LIGHT_MODE;
-}
-
 String getModeStr() {
-  if(getMode() == NO_LIGHT_MODE) return "NOLIGHT";
+  if(mode == NO_LIGHT_MODE) return "NOLIGHT";
   else return "LIGHT";
 }
 
