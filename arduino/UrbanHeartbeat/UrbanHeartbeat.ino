@@ -54,8 +54,8 @@
 // END MODE CHANGER MODULE CONSTANTS
 
 // START SENSOR MODULE CONSTANTS
-#define NUM_SAMPLES 20
-#define ULTRASONIC_THRESHOLD 125 // FOR RELEASE
+#define NUM_SAMPLES 10
+#define ULTRASONIC_THRESHOLD 150 // FOR RELEASE
 //#define ULTRASONIC_THRESHOLD 15 // FOR DEBUGGING
 #define TRIG_PIN 8
 #define ECHO_PIN 7
@@ -123,9 +123,6 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KH
 // END GLOBAL VARIABLES
 
 void setup() {
-  // SET INITIAL RESET VALUE
-//  EEPROM.write(RESET_EEPROM_ADDRESS, RESET_ENABLED);
-  
   // SET SERIAL CONNECTION
   Serial.begin(SERIAL_PORT);
   
@@ -235,6 +232,7 @@ void loop() {
   sensorInputIndex++;
   if(sensorInputIndex >= NUM_SAMPLES) sensorInputIndex = 0;
   sensorInputAvg = sensorInputTotal / NUM_SAMPLES;
+  Serial.println(sensorInputAvg);
   
   if(sensorInputAvg <= ULTRASONIC_THRESHOLD) {
     // SOMEONE IS HERE
