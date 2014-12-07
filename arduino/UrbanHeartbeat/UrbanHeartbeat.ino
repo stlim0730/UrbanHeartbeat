@@ -54,6 +54,7 @@
 // END MODE CHANGER MODULE CONSTANTS
 
 // START SENSOR MODULE CONSTANTS
+#define NUM_SAMPLES 20
 #define ULTRASONIC_THRESHOLD 125 // FOR RELEASE
 //#define ULTRASONIC_THRESHOLD 15 // FOR DEBUGGING
 #define TRIG_PIN 8
@@ -93,8 +94,12 @@ int mode = NO_LIGHT_MODE;
 // END MODE CHANGER GLOBAL VARIABLES
 
 // START SENSOR MODULE GLOBAL VARIABLES
-long distance = 300;
-long duration = 0;
+int distance = 300;
+int duration = 0;
+int sensorInputs[NUM_SAMPLES];
+int sensorInputIndex = 0;
+int sensorInputTotal = 0;
+int sensorInputAvg = 0;
 // END SENSOR MODULE GLOBAL VARIABLES
 
 // START DATA MODULE GLOBAL VARIABLES
@@ -132,9 +137,26 @@ void setup() {
   pinMode(MODE_PIN, INPUT);
   // END MODE CHANGER SETUP
   
+  // START STATE HANDLER SETUP
+  lv1Tick = 0.0f;
+  lv2Tick = 0.0f;
+  lv3Tick = 0.0f;
+  state = OFF;
+  started = -1;
+  startElapsed = 0;
+  left = -1;
+  leaveElapsed = 0;
+  lv1Lasting = false;
+  lv2Lasting = false;
+  lv3Lasting = false;
+  // END STATE HANDLER SETUP
+  
   // START SENSOR MODULE SETUP
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
+  distance = 300;
+  duration = 0;
+  for(int i=0;i<NUM_SAMPLES;i++) sensorInputs[i] = 0;
   // END SENSOR MODULE SETUP
   
   // START DATA MODULE SETUP
@@ -156,22 +178,6 @@ void setup() {
 
   // INITIALIZE NeoPixel LIBRARY
   pixels.begin();
-  
-  lv1Tick = 0.0f;
-  lv2Tick = 0.0f;
-  lv3Tick = 0.0f;
-  state = OFF;
-  started = -1;
-  startElapsed = 0;
-  left = -1;
-  leaveElapsed = 0;
-  
-  distance = 300;
-  duration = 0;
-  
-  lv1Lasting = false;
-  lv2Lasting = false;
-  lv3Lasting = false;
 }
 void(* resetFunc) (void) = 0;
 
@@ -223,13 +229,20 @@ void loop() {
   // END MODE HANDLER
 
   // START STATE HANDLER
-  if(distance <= ULTRASONIC_THRESHOLD) {
+  sensorInputTotal = sensorInputTotal - sensorInputs[sensorInputIndex];
+  sensorInputs[sensorInputIndex] = distance;
+  sensorInputTotal = sensorInputTotal + sensorInputs[sensorInputIndex];
+  sensorInputIndex++;
+  if(sensorInputIndex >= NUM_SAMPLES) sensorInputIndex = 0;
+  sensorInputAvg = sensorInputTotal / NUM_SAMPLES;
+  
+  if(sensorInputAvg <= ULTRASONIC_THRESHOLD) {
     // SOMEONE IS HERE
     
     if(state == OFF) { // WHEN IT WAS OFF
       // START RECORDING TIMESTAMP
       String timestamp = String(millis());
-      String distanceStr = "\t" + String(distance);
+      String distanceStr = "\t" + String(sensorInputAvg);
       String modeStr;
       if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
       else modeStr = "\tLIGHT";
@@ -255,7 +268,7 @@ void loop() {
     if(state == ON) { // WHEN IT WAS ON
       // START RECORDING TIMESTAMP
       String timestamp = String(millis());
-      String distanceStr = "\t" + String(distance);
+      String distanceStr = "\t" + String(sensorInputAvg);
       String modeStr;
       if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
       else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
@@ -309,7 +322,7 @@ void loop() {
     if(!lv2Lasting) { // WHEN LEVEL 2 IS OFF
       // START RECORDING TIMESTAMP
       String timestamp = String(millis());
-      String distanceStr = "\t" + String(distance);
+      String distanceStr = "\t" + String(sensorInputAvg);
       String modeStr;
       if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
       else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
@@ -334,7 +347,7 @@ void loop() {
     if(lv2Lasting) { // WHEN LEVEL 2 IS ON
       // START RECORDING TIMESTAMP
       String timestamp = String(millis());
-      String distanceStr = "\t" + String(distance);
+      String distanceStr = "\t" + String(sensorInputAvg);
       String modeStr;
       if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
       else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
@@ -359,7 +372,7 @@ void loop() {
     if(!lv3Lasting) { // WHEN LEVEL 3 IS OFF
       // START RECORDING TIMESTAMP
       String timestamp = String(millis());
-      String distanceStr = "\t" + String(distance);
+      String distanceStr = "\t" + String(sensorInputAvg);
       String modeStr;
       if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
       else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
@@ -384,7 +397,7 @@ void loop() {
     if(lv3Lasting) { // WHEN LEVEL 3 IS ON
       // START RECORDING TIMESTAMP
       String timestamp = String(millis());
-      String distanceStr = "\t" + String(distance);
+      String distanceStr = "\t" + String(sensorInputAvg);
       String modeStr;
       if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
       else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
