@@ -55,7 +55,7 @@
 
 // START SENSOR MODULE CONSTANTS
 #define NUM_SAMPLES 10
-#define ULTRASONIC_THRESHOLD 150 // FOR RELEASE
+#define ULTRASONIC_THRESHOLD 135 // FOR RELEASE
 //#define ULTRASONIC_THRESHOLD 15 // FOR DEBUGGING
 #define TRIG_PIN 8
 #define ECHO_PIN 7
@@ -111,9 +111,9 @@ boolean lv1Lasting = false;
 boolean lv2Lasting = false;
 boolean lv3Lasting = false;
 const int level2OnDelay = 10 * SECOND;
-const int level2OffDelay = 15 * SECOND;
-const int level3OnDelay = 60 * SECOND;
-const int level3OffDelay = 90 * SECOND;
+const int level2OffDelay = 10 * SECOND;
+const int level3OnDelay = 30 * SECOND;
+const int level3OffDelay = 30 * SECOND;
 // END ACTIVITY VARIABLES
 
 // When we setup the NeoPixel library, we tell it how many pixels, and which pin to use to send signals.
@@ -127,15 +127,15 @@ void setup() {
   Serial.begin(SERIAL_PORT);
   
   // START RESET HANDLER SETUP
-  pinMode(RESET_PIN, INPUT);
+//  pinMode(RESET_PIN, INPUT);
   // END RESET HANDLER SETUP
   
   // START MODE CHANGER SETUP
-  pinMode(MODE_PIN, INPUT);
+//  pinMode(MODE_PIN, INPUT);
   // END MODE CHANGER SETUP
   
   // START STATE HANDLER SETUP
-  lv1Tick = 0.0f;
+  /*lv1Tick = 0.0f;
   lv2Tick = 0.0f;
   lv3Tick = 0.0f;
   state = OFF;
@@ -145,7 +145,7 @@ void setup() {
   leaveElapsed = 0;
   lv1Lasting = false;
   lv2Lasting = false;
-  lv3Lasting = false;
+  lv3Lasting = false;*/
   // END STATE HANDLER SETUP
   
   // START SENSOR MODULE SETUP
@@ -176,15 +176,14 @@ void setup() {
   // INITIALIZE NeoPixel LIBRARY
   pixels.begin();
 }
-void(* resetFunc) (void) = 0;
+//void(* resetFunc) (void) = 0;
 
 void loop() {
   
   // START RESET HANDLER
-  resetVal = analogRead(RESET_PIN);
+  /*resetVal = analogRead(RESET_PIN);
   eepromVal = EEPROM.read(RESET_EEPROM_ADDRESS);
   if(resetVal < RESET_THRESHOLD) { // WHEN CONNECTED
-//    Serial.println("NO RESET");
     // START PREVENTING RESET
     EEPROM.write(RESET_EEPROM_ADDRESS, RESET_DISABLED);
     // END PREVENTING RESET
@@ -195,11 +194,10 @@ void loop() {
       EEPROM.write(RESET_EEPROM_ADDRESS, RESET_ENABLED);
       resetFunc();
     }
-    else if(eepromVal == RESET_ENABLED) {
-//      Serial.println("NO RESET");
+    else if(eepromVal == RESET_ENABLED) { // AFTER REBOOT
       EEPROM.write(RESET_EEPROM_ADDRESS, RESET_DISABLED);
     }
-  }
+  }*/
   // END RESET HANDLER
   
   // START SENSOR MODULE
@@ -210,29 +208,29 @@ void loop() {
   digitalWrite(TRIG_PIN, LOW);
   duration = pulseIn(ECHO_PIN, HIGH);
   distance = (duration / 2) / 29.1;
-  Serial.println(distance);
+//  Serial.println(distance);
   // END SENSOR MODULE
   
   // START MODE HANDLER
-  modeVal = analogRead(MODE_PIN);
+  /*modeVal = analogRead(MODE_PIN);
   if(modeVal < RESET_THRESHOLD) { // WHEN CONNECTED
     mode = NO_LIGHT_MODE;
-//    Serial.println("NOLIGHT");
   }
   else if(modeVal >= RESET_THRESHOLD) { // WHEN DISCONNECTED
     mode = LIGHT_MODE;
-//    Serial.println("LIGHT");
-  }
+  }*/
   // END MODE HANDLER
 
   // START STATE HANDLER
+  // START SMOOTHING
   sensorInputTotal = sensorInputTotal - sensorInputs[sensorInputIndex];
   sensorInputs[sensorInputIndex] = distance;
   sensorInputTotal = sensorInputTotal + sensorInputs[sensorInputIndex];
   sensorInputIndex++;
   if(sensorInputIndex >= NUM_SAMPLES) sensorInputIndex = 0;
   sensorInputAvg = sensorInputTotal / NUM_SAMPLES;
-  Serial.println(sensorInputAvg);
+//  Serial.println(sensorInputAvg);
+  // END SMOOTHING
   
   if(sensorInputAvg <= ULTRASONIC_THRESHOLD) {
     // SOMEONE IS HERE
@@ -241,12 +239,12 @@ void loop() {
       // START RECORDING TIMESTAMP
       String timestamp = String(millis());
       String distanceStr = "\t" + String(sensorInputAvg);
-      String modeStr;
+      /*String modeStr;
       if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
-      else modeStr = "\tLIGHT";
+      else modeStr = "\tLIGHT";*/
       String levelStr = "\tLEVEL1";
       String stateStr = "\tON";
-      writeLineOnSD(FILE_NAME, timestamp + distanceStr + modeStr + levelStr + stateStr);
+      writeLineOnSD(FILE_NAME, timestamp + distanceStr /*+ modeStr*/ + levelStr + stateStr);
       // END RECORDING TIMESTAMP
     }
     
@@ -267,12 +265,12 @@ void loop() {
       // START RECORDING TIMESTAMP
       String timestamp = String(millis());
       String distanceStr = "\t" + String(sensorInputAvg);
-      String modeStr;
+      /*String modeStr;
       if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
-      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
+      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";*/
       String levelStr = "\tLEVEL1";
       String stateStr = "\tOFF";
-      writeLineOnSD(FILE_NAME, timestamp + distanceStr + modeStr + levelStr + stateStr);
+      writeLineOnSD(FILE_NAME, timestamp + distanceStr /*+ modeStr*/ + levelStr + stateStr);
       // END RECORDING TIMESTAMP
     }
     
@@ -299,10 +297,10 @@ void loop() {
     // START TURNING ON LIGHT LEVEL 1
     double lv1red1 = (sin(lv1Tick) + 1) * 127;
     double lv1green2 = (cos(lv1Tick) + 1) * 127;
-    if(mode == LIGHT_MODE) {
+//    if(mode == LIGHT_MODE) {
       pixels.setPixelColor(0, pixels.Color(0, lv1red1, 40));
       pixels.setPixelColor(1, pixels.Color(lv1green2, 50, lv1green2));
-    }
+//    }
     // END TURNING ON LIGHT LEVEL 1
   }
   else { // WHEN NOONE IS HERE
@@ -321,12 +319,12 @@ void loop() {
       // START RECORDING TIMESTAMP
       String timestamp = String(millis());
       String distanceStr = "\t" + String(sensorInputAvg);
-      String modeStr;
+      /*String modeStr;
       if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
-      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
+      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";*/
       String levelStr = "\tLEVEL2";
       String stateStr = "\tON";
-      writeLineOnSD(FILE_NAME, timestamp + distanceStr + modeStr + levelStr + stateStr);
+      writeLineOnSD(FILE_NAME, timestamp + distanceStr /* + modeStr*/ + levelStr + stateStr);
       // END RECORDING TIMESTAMP
     }
     
@@ -334,10 +332,10 @@ void loop() {
     lv2Lasting = true;
     double lv2red1 = (sin(lv2Tick) + 1) * 127;
     double lv2green2 = (cos(lv2Tick) + 1) * 127;
-    if(mode == LIGHT_MODE) {
+//    if(mode == LIGHT_MODE) {
       pixels.setPixelColor(2, pixels.Color(0, lv2red1, 40));
       pixels.setPixelColor(3, pixels.Color(lv2green2, 0, 0));
-    }
+//    }
     // END TURNING ON LIGHT LEVEL 2
   }
   else { // WHEN NOONE HAS BEEN HERE FOR LONG ENOUGH
@@ -346,12 +344,12 @@ void loop() {
       // START RECORDING TIMESTAMP
       String timestamp = String(millis());
       String distanceStr = "\t" + String(sensorInputAvg);
-      String modeStr;
+      /*String modeStr;
       if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
-      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
+      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";*/
       String levelStr = "\tLEVEL2";
       String stateStr = "\tOFF";
-      writeLineOnSD(FILE_NAME, timestamp + distanceStr + modeStr + levelStr + stateStr);
+      writeLineOnSD(FILE_NAME, timestamp + distanceStr /* + modeStr*/ + levelStr + stateStr);
       // END RECORDING TIMESTAMP
     }
     
@@ -371,12 +369,12 @@ void loop() {
       // START RECORDING TIMESTAMP
       String timestamp = String(millis());
       String distanceStr = "\t" + String(sensorInputAvg);
-      String modeStr;
+      /*String modeStr;
       if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
-      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
+      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";*/
       String levelStr = "\tLEVEL3";
       String stateStr = "\tON";
-      writeLineOnSD(FILE_NAME, timestamp + distanceStr + modeStr + levelStr + stateStr);
+      writeLineOnSD(FILE_NAME, timestamp + distanceStr /* + modeStr*/ + levelStr + stateStr);
       // END RECORDING TIMESTAMP
     }
     
@@ -384,10 +382,10 @@ void loop() {
     lv3Lasting = true;
     double lv3blue1 = (sin(lv3Tick) + 1) * 127;
     double lv3red2 = (cos(lv3Tick) + 1) * 127;
-    if(mode == LIGHT_MODE) {
+//    if(mode == LIGHT_MODE) {
       pixels.setPixelColor(4, pixels.Color(0, 0, lv3blue1));
       pixels.setPixelColor(5, pixels.Color(60, lv3red2, 0));
-    }
+//    }
     // END TURNING OFF LIGHT LEVEL 3
   }
   else { // WHEN NOONE HAS BEEN HERE FOR LONG ENOUGH
@@ -396,12 +394,12 @@ void loop() {
       // START RECORDING TIMESTAMP
       String timestamp = String(millis());
       String distanceStr = "\t" + String(sensorInputAvg);
-      String modeStr;
+      /*String modeStr;
       if(mode == NO_LIGHT_MODE) modeStr = "\tNOLIGHT";
-      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";
+      else if(mode == LIGHT_MODE) modeStr = "\tLIGHT";*/
       String levelStr = "\tLEVEL3";
       String stateStr = "\tOFF";
-      writeLineOnSD(FILE_NAME, timestamp + distanceStr + modeStr + levelStr + stateStr);
+      writeLineOnSD(FILE_NAME, timestamp + distanceStr /* + modeStr*/ + levelStr + stateStr);
       // END RECORDING TIMESTAMP
     }
     
