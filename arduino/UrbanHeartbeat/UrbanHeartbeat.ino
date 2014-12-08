@@ -37,6 +37,8 @@
 #define LV1_TICK_INC PI/30
 #define LV2_TICK_INC PI/15
 #define LV3_TICK_INC PI/7
+#define FAST_TICK_INC PI/5
+#define FASTER_TICK_INC PI/3
 #define SECOND 1000
 #define MINUTE 60000
 // END CONTROL CONSTANTS
@@ -55,8 +57,11 @@
 
 // START SENSOR MODULE CONSTANTS
 #define NUM_SAMPLES 10
-#define ULTRASONIC_THRESHOLD 135 // FOR RELEASE
+#define ULTRASONIC_THRESHOLD 145 // FOR RELEASE
 //#define ULTRASONIC_THRESHOLD 15 // FOR DEBUGGING
+#define FASTER_THRESHOLD_LOWER 15
+#define FASTER_THRESHOLD_UPPER 25
+#define FAST_THRESHOLD_UPPER 35
 #define TRIG_PIN 8
 #define ECHO_PIN 7
 #define TRIG_DELAY_LOW_HIGH 2
@@ -76,6 +81,7 @@
 
 // START GLOBAL VARIABLES
 // START CONTROL GLOBAL VARIABLES
+int easterEggVal = 0;
 int resetVal = 0;
 int eepromVal = RESET_DISABLED;
 float lv1Tick = 0.0f;
@@ -229,8 +235,15 @@ void loop() {
   sensorInputIndex++;
   if(sensorInputIndex >= NUM_SAMPLES) sensorInputIndex = 0;
   sensorInputAvg = sensorInputTotal / NUM_SAMPLES;
-//  Serial.println(sensorInputAvg);
+  Serial.println(sensorInputAvg);
   // END SMOOTHING
+  
+  // START EASTER EGG HANDLER
+  if(sensorInputAvg >= FASTER_THRESHOLD_LOWER
+  && sensorInputAvg <= FASTER_THRESHOLD_UPPER) easterEggVal = 2;
+  else if(sensorInputAvg <= FAST_THRESHOLD_UPPER) easterEggVal = 1;
+  else easterEggVal = 0;
+  // END EASTER EGG HANDLER
   
   if(sensorInputAvg <= ULTRASONIC_THRESHOLD) {
     // SOMEONE IS HERE
@@ -415,13 +428,26 @@ void loop() {
   // END LIGHT MODULE
 
   // START TICKING
-  lv1Tick += LV1_TICK_INC;
+  if(easterEggVal==0) {
+    lv1Tick += LV1_TICK_INC;
+    lv2Tick += LV2_TICK_INC;
+    lv3Tick += LV3_TICK_INC;
+  }
+  else if(easterEggVal==1) {
+    lv1Tick += FAST_TICK_INC;
+    lv2Tick += FAST_TICK_INC;
+    lv3Tick += FAST_TICK_INC;
+    Serial.println(">>> fast");
+  }
+  else if(easterEggVal==2) {
+    lv1Tick += FASTER_TICK_INC;
+    lv2Tick += FASTER_TICK_INC;
+    lv3Tick += FASTER_TICK_INC;
+    Serial.println(">>>>>> faster");
+  }
+  
   if(lv1Tick > 2 * PI) lv1Tick = 0;
-
-  lv2Tick += LV2_TICK_INC;
   if(lv2Tick > 2 * PI) lv2Tick = 0;
-
-  lv3Tick += LV3_TICK_INC;
   if(lv3Tick > 2 * PI) lv3Tick = 0;
   // END TICKING
 
