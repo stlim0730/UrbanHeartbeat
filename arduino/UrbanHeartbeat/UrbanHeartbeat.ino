@@ -116,10 +116,10 @@ const char FILE_NAME[] = "data.txt";
 boolean lv1Lasting = false;
 boolean lv2Lasting = false;
 boolean lv3Lasting = false;
-const int level2OnDelay = 10 * SECOND;
-const int level2OffDelay = 10 * SECOND;
-const int level3OnDelay = 30 * SECOND;
-const int level3OffDelay = 30 * SECOND;
+const int level2OnDelay = 5 * SECOND;
+const int level2OffDelay = 5 * SECOND;
+const int level3OnDelay = 15 * SECOND;
+const int level3OffDelay = 15 * SECOND;
 // END ACTIVITY VARIABLES
 
 // When we setup the NeoPixel library, we tell it how many pixels, and which pin to use to send signals.
